@@ -1,29 +1,94 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { analyzePronunciation } from '../services/geminiService';
-import { PronunciationFeedback } from '../types';
-import { Mic, Square, Play, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { PronunciationFeedback, EnglishLevel } from '../types';
+import { Mic, Square, Play, RefreshCw, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 
-const SUGGESTED_PHRASES = [
-  "I would like a cup of coffee.",
-  "Where is the nearest subway station?",
-  "It's nice to meet you.",
-  "How much does this cost?",
-  "Can you help me, please?"
-];
+interface PronunciationViewProps {
+  level: EnglishLevel;
+}
 
-const PronunciationView: React.FC = () => {
-  const [targetPhrase, setTargetPhrase] = useState(SUGGESTED_PHRASES[0]);
+// Basic hardcoded phrases for low levels
+const PHRASES_BY_LEVEL: Record<string, string[]> = {
+  'Unidade 1': [
+    "I eat bread.",
+    "She drinks water.",
+    "Hello, good morning.",
+    "A man and a woman.",
+    "I am from Brazil."
+  ],
+  'Unidade 2': [
+    "The cat is black.",
+    "I have a red car.",
+    "Do you speak English?",
+    "My dog is happy.",
+    "This is my house."
+  ],
+  'Unidade 3': [
+    "I go to work every day.",
+    "My sister likes coffee.",
+    "Where is the supermarket?",
+    "I play soccer on Sundays.",
+    "What time is it?"
+  ],
+  'Unidade 4': [
+    "I booked a hotel room.",
+    "Can you help me find the airport?",
+    "The food was delicious.",
+    "I traveled to London last year.",
+    "How much is the ticket?"
+  ],
+  'Unidade 5': [
+    "I will start a new job soon.",
+    "I think that is a great idea.",
+    "We are going to travel next month.",
+    "In my opinion, it is important.",
+    "If I study, I will learn."
+  ],
+  'Unidade 6': [
+    "Actions speak louder than words.",
+    "I'm feeling under the weather.",
+    "It's a piece of cake.",
+    "Let's get down to business.",
+    "Better late than never."
+  ]
+};
+
+const PronunciationView: React.FC<PronunciationViewProps> = ({ level }) => {
+  // If no phrases exist for this specific level (e.g. Unidade 50), default to generic or level 1 for now
+  // Ideally we would fetch these from AI too, but fallback is safer for quick scaling
+  const [phrases, setPhrases] = useState<string[]>(PHRASES_BY_LEVEL[level] || [
+    "I love learning English.",
+    "This is a beautiful day.",
+    "Can you help me please?",
+    "I want to be fluent.",
+    "Practice makes perfect."
+  ]);
+  
+  const [targetPhrase, setTargetPhrase] = useState(phrases[0]);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<PronunciationFeedback | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  useEffect(() => {
+    // Logic to switch phrases when level changes
+    const newPhrases = PHRASES_BY_LEVEL[level] || [
+        "I love learning English.",
+        "This is a beautiful day.",
+        "Can you help me please?",
+        "I want to be fluent.",
+        "Practice makes perfect."
+    ];
+    setPhrases(newPhrases);
+    setTargetPhrase(newPhrases[0]);
+    setFeedback(null);
+  }, [level]);
+
   const startRecording = async () => {
     setFeedback(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Determine supported mime type
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
         ? 'audio/webm' 
         : 'audio/mp4';
@@ -42,7 +107,6 @@ const PronunciationView: React.FC = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         await handleAudioUpload(audioBlob, mimeType);
         
-        // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -68,7 +132,7 @@ const PronunciationView: React.FC = () => {
       reader.readAsDataURL(blob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        const result = await analyzePronunciation(base64Audio, mimeType, targetPhrase);
+        const result = await analyzePronunciation(base64Audio, mimeType, targetPhrase, level);
         setFeedback(result);
         setIsAnalyzing(false);
       };
@@ -79,9 +143,9 @@ const PronunciationView: React.FC = () => {
   };
 
   const changePhrase = () => {
-    const currentIndex = SUGGESTED_PHRASES.indexOf(targetPhrase);
-    const nextIndex = (currentIndex + 1) % SUGGESTED_PHRASES.length;
-    setTargetPhrase(SUGGESTED_PHRASES[nextIndex]);
+    const currentIndex = phrases.indexOf(targetPhrase);
+    const nextIndex = (currentIndex + 1) % phrases.length;
+    setTargetPhrase(phrases[nextIndex]);
     setFeedback(null);
   };
 
@@ -92,85 +156,106 @@ const PronunciationView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 pb-24 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Treino de Pronúncia</h1>
+    <div className="p-4 pb-32 max-w-xl mx-auto flex flex-col items-center">
+      <div className="w-full mb-8 text-center">
+         <span className="inline-flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-full text-indigo-600 font-extrabold text-sm uppercase tracking-wide border border-indigo-100">
+            <Sparkles size={14} /> {level}
+         </span>
+      </div>
       
-      <div className="bg-white rounded-2xl p-8 shadow-md border border-gray-100 text-center mb-6">
-        <p className="text-gray-400 text-sm uppercase tracking-wider font-semibold mb-2">Tente dizer:</p>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">"{targetPhrase}"</h2>
+      {/* Main Interaction Card */}
+      <div className="w-full bg-white rounded-3xl p-8 shadow-xl shadow-gray-100/50 border-2 border-gray-100 relative overflow-hidden">
         
-        <div className="flex justify-center gap-4 mb-6">
+        {/* Phrase Display */}
+        <div className="text-center mb-8 relative z-10">
+          <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-3">Fale em voz alta</p>
+          <h2 className="text-3xl font-black text-gray-800 leading-tight">
+             "{targetPhrase}"
+          </h2>
+        </div>
+        
+        {/* Controls */}
+        <div className="flex justify-center gap-3 mb-10 relative z-10">
           <button 
             onClick={playPhrase}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-colors border-2 border-transparent hover:border-blue-200"
           >
-            <Play size={16} /> Ouvir
+            <Play size={18} fill="currentColor" /> Ouvir
           </button>
           <button 
             onClick={changePhrase}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 text-gray-500 rounded-xl font-bold hover:bg-gray-100 transition-colors border-2 border-transparent hover:border-gray-200"
           >
-            <RefreshCw size={16} /> Mudar
+            <RefreshCw size={18} strokeWidth={2.5} /> Pular
           </button>
         </div>
 
-        <div className="flex justify-center">
+        {/* Big Mic Button Area */}
+        <div className="flex justify-center relative z-10 h-32 items-center">
           {!isRecording && !isAnalyzing && (
             <button 
               onClick={startRecording}
-              className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-indigo-200 hover:scale-105 hover:bg-indigo-700 transition-all"
+              className="group relative w-24 h-24 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-none"
             >
-              <Mic size={32} />
+              <div className="absolute inset-0 bg-blue-500 rounded-2xl shadow-[0_8px_0_0_#1d4ed8] group-active:shadow-none group-active:translate-y-2 transition-all"></div>
+              <Mic size={40} className="text-white relative z-10" strokeWidth={2.5} />
             </button>
           )}
 
           {isRecording && (
             <button 
               onClick={stopRecording}
-              className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-200 animate-pulse hover:scale-105 transition-all"
+              className="group relative w-24 h-24 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-none"
             >
-              <Square size={32} fill="currentColor" />
+              <div className="absolute inset-0 bg-red-500 rounded-2xl shadow-[0_8px_0_0_#b91c1c] group-active:shadow-none group-active:translate-y-2 transition-all animate-pulse"></div>
+              <div className="absolute -inset-4 border-4 border-red-100 rounded-3xl animate-ping opacity-50"></div>
+              <Square size={36} fill="currentColor" className="text-white relative z-10" />
             </button>
           )}
 
           {isAnalyzing && (
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-4 border-indigo-200 border-t-indigo-600 animate-spin">
+            <div className="relative w-24 h-24 flex items-center justify-center">
+               <div className="absolute inset-0 border-4 border-gray-100 rounded-2xl"></div>
+               <div className="absolute inset-0 border-4 border-blue-500 rounded-2xl border-t-transparent animate-spin"></div>
+               <Sparkles className="text-blue-500 animate-pulse" size={32} />
             </div>
           )}
         </div>
-        <p className="mt-4 text-sm text-gray-500 min-h-[20px]">
-          {isRecording ? "Ouvindo... Toque para parar" : isAnalyzing ? "A IA está analisando..." : "Toque no microfone para falar"}
+        
+        <p className={`text-center mt-6 font-bold text-sm transition-colors ${isRecording ? 'text-red-500' : 'text-gray-400'}`}>
+          {isRecording ? "Gravando..." : isAnalyzing ? "A IA está ouvindo..." : "Toque para gravar"}
         </p>
       </div>
 
+      {/* Feedback Card */}
       {feedback && (
-        <div className={`rounded-2xl p-6 border-2 animate-fade-in ${
-          feedback.score > 80 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'
+        <div className={`w-full mt-6 rounded-3xl p-6 border-b-8 animate-fade-in-up transform transition-all ${
+          feedback.score > 80 ? 'bg-green-100 border-green-300 text-green-900' : 'bg-orange-50 border-orange-200 text-orange-900'
         }`}>
-          <div className="flex items-center gap-3 mb-4">
-            {feedback.score > 80 ? (
-              <CheckCircle className="text-green-600" size={32} />
-            ) : (
-              <AlertCircle className="text-orange-600" size={32} />
-            )}
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Nota de Pronúncia</p>
-              <p className={`text-2xl font-bold ${
-                feedback.score > 80 ? 'text-green-700' : 'text-orange-700'
-              }`}>{feedback.score}/100</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${feedback.score > 80 ? 'bg-green-200' : 'bg-orange-200'}`}>
+                 {feedback.score > 80 ? (
+                  <CheckCircle className={feedback.score > 80 ? 'text-green-600' : 'text-orange-600'} size={24} strokeWidth={3} />
+                ) : (
+                  <AlertCircle className={feedback.score > 80 ? 'text-green-600' : 'text-orange-600'} size={24} strokeWidth={3} />
+                )}
+              </div>
+              <span className="font-black text-lg uppercase tracking-wide">
+                {feedback.score > 80 ? 'Excelente!' : 'Continue tentando'}
+              </span>
+            </div>
+            <div className={`text-3xl font-black ${feedback.score > 80 ? 'text-green-600' : 'text-orange-500'}`}>
+              {feedback.score}%
             </div>
           </div>
           
-          <div className="space-y-3">
-            <div>
-              <p className="font-semibold text-gray-800 mb-1">Feedback:</p>
-              <p className="text-gray-700 leading-relaxed">{feedback.feedback}</p>
-            </div>
-            
+          <div className="bg-white/60 rounded-2xl p-4 backdrop-blur-sm">
+            <p className="font-bold leading-relaxed opacity-90">{feedback.feedback}</p>
             {feedback.correction && (
-              <div className="bg-white/50 p-3 rounded-lg mt-2">
-                <p className="text-xs font-bold text-gray-500 uppercase mb-1">Dica de correção</p>
-                <p className="text-gray-800 font-medium">{feedback.correction}</p>
+              <div className="mt-3 pt-3 border-t border-black/5">
+                <p className="text-xs font-extrabold uppercase opacity-50 mb-1">Dica de Ouro</p>
+                <p className="font-bold">{feedback.correction}</p>
               </div>
             )}
           </div>

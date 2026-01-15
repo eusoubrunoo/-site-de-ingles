@@ -2,22 +2,71 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>LinguAI - Aprenda Inglês</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Nunito', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                500: '#58cc02', // Duo Green
+                600: '#46a302',
+                700: '#46a302',
+              }
+            },
+            animation: {
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'bounce-slight': 'bounce-slight 2s infinite',
+              'float': 'float 3s ease-in-out infinite',
+              'slide-up': 'slide-up 0.5s ease-out',
+            },
+            keyframes: {
+              'bounce-slight': {
+                '0%, 100%': { transform: 'translateY(-3%)' },
+                '50%': { transform: 'translateY(0)' },
+              },
+              'float': {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-6px)' },
+              },
+              'slide-up': {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              }
+            }
+          }
+        }
+      }
+    </script>
     <style>
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Nunito', sans-serif;
         background-color: #f3f4f6;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior-y: none; /* Prevents bounce on pull-to-refresh */
       }
-      /* Custom Scrollbar for chat */
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
       }
       .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+      }
+      .bg-dot-pattern {
+        background-color: #f3f4f6;
+        background-image: radial-gradient(#d1d5db 1.5px, transparent 1.5px);
+        background-size: 20px 20px;
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
     </style>
   <script type="importmap">

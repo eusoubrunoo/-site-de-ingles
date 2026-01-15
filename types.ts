@@ -19,7 +19,10 @@ export interface PronunciationFeedback {
 }
 
 export enum AppTab {
+  HOME = 'home',
   DAILY = 'daily',
   CHAT = 'chat',
   PRONUNCIATION = 'pronunciation'
 }
+
+export type EnglishLevel = string;

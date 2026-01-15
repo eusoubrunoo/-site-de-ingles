@@ -1,0 +1,7 @@
+{
+  "name": "ingles site",
+  "description": "Um tutor de inteligência artificial que ensina inglês gradualmente, partindo do português. Inclui lições diárias, chat interativo e correção de pronúncia.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
